@@ -337,10 +337,9 @@ class Station(Data):
 
         l = self.data.shape[0]
         self._floyd = self.get_all_route().copy()
-
-        for i in range(1, l + 1):
-            for j in range(1, l + 1):
-                for k in range(1, l + 1):
+        for k in range(1, l + 1):
+            for i in range(1, l + 1):
+                for j in range(1, l + 1):
                     if self._floyd[i][j] > self._floyd[i][k] + self._floyd[k][j]:
                         # todo 路径
                         self._floyd[i][j] = self._floyd[i][k] + self._floyd[k][j]
