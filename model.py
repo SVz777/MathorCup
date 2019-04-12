@@ -288,10 +288,9 @@ class Station(Data):
 
         return stations
 
-    def get_all_route(self, trains):
+    def get_all_route(self):
         """
         计算所有路线的相邻站点耗时
-        :param trains:
         :return:
         """
         if self._all_route is not None:
