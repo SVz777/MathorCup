@@ -19,7 +19,7 @@ trains = Trains()
 route_name = Route()
 station = Station()
 
-datas = od.get_data()
+datas = od.data
 print(datas)
 in_time_counts = []
 out_time_counts = []
