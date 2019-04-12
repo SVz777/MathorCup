@@ -29,8 +29,11 @@ time_encode, time_decode = get_time_func('h')
 
 
 class Data:
-    def get_data(self):
-        self.data = pd.read_csv('./info/'+self.file_name, converters=self.converters, nrows=10000)  # ,chunksize=10000)
+    def get_data(self, small=True):
+        if small:
+            self.data = [pd.read_csv('./info/' + self.file_name, converters=self.converters, nrows=10000)]
+        else:
+            self.data = pd.read_csv('./info/' + self.file_name, converters=self.converters, chunksize=100000)
 
 
 class Od(Data):

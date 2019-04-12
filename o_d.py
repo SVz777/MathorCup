@@ -23,7 +23,7 @@ datas = od.data
 print(datas)
 in_time_counts = []
 out_time_counts = []
-for data in [datas]:
+for data in datas:
     in_time_count = data.groupby(od.in_time).size()
     in_time_counts.append(in_time_count.rename(time_decode, axis=0))
     out_time_count = data.groupby(od.out_time).size()
