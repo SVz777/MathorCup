@@ -336,7 +336,7 @@ class Station(Data):
                 return self._floyd
 
         l = self.data.shape[0]
-        self._floyd = self._all_route.copy()
+        self._floyd = self.get_all_route().copy()
 
         for i in range(1, l + 1):
             for j in range(1, l + 1):
