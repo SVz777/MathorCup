@@ -31,9 +31,9 @@ time_encode, time_decode = get_time_func()
 class Data:
     def get_data(self, small=True):
         if small:
-            self.data = [pd.read_csv('./info/' + self.file_name, converters=self.converters, nrows=10000)]
+            self.data = pd.read_csv('./info/' + self.file_name, converters=self.converters, nrows=100000)
         else:
-            self.data = pd.read_csv('./info/' + self.file_name, converters=self.converters, chunksize=100000)
+            self.data = pd.read_csv('./info/' + self.file_name, converters=self.converters)  # , chunksize=100000)
 
 
 class Od(Data):
@@ -78,9 +78,6 @@ class Trains(Data):
         self.get_data()
 
     def get_trains(self, route_id):
-        print(self.data)
-        print(self.data[self.route_id])
-        exit()
         df: pd.DataFrame = self.data[self.data[self.route_id] == route_id]
         if df.empty:
             return []
