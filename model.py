@@ -329,7 +329,7 @@ class Station(Data):
         """
         if self._floyd:
             return self._floyd
-        if os.path.exists('all_route.pds'):
+        if os.path.exists('floyd.pds'):
             with open('floyd.pds', 'rb') as f:
                 print('load')
                 self._floyd = pickle.load(f)
