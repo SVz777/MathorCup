@@ -139,9 +139,9 @@ class Trains(Data):
 
         m: pd.DataFrame = pd.merge(t1, t2, on=[self.train_id], suffixes=['_s', '_e'])
 
-        dd = (m[self.end_time + '_e'] - m[self.start_time + '_s']).drop_duplicates()
-        dd = dd[dd > 0]
-        return dd
+        df = (m[self.end_time + '_e'] - m[self.start_time + '_s']).drop_duplicates()
+        df = df[df > 0]
+        return df
 
     def get_station_drive_time(self, start_station_id, end_station_id):
         """
