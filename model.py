@@ -93,6 +93,23 @@ class Trains(Data):
         }
 
         self.get_data()
+        self.deal_data()
+
+    def deal_data(self):
+        """
+        处理同名车站不同id问题
+        :return:
+        """
+        data = station.get_same_name_station()
+        for station_name, station_ids in data.items():
+            if len(station_ids) > 1:
+                c_id = station_ids[0]
+                idx = []
+                for id in station_ids[1:]:
+                    idx.extend(list(self.data[self.data[self.station_id] == id].index))
+
+                for i in idx:
+                    self.data.at[i,self.station_id] = c_id
 
     def format_time(self, df):
         """
@@ -221,33 +238,49 @@ class Station(Data):
         }
 
         self.get_data()
-        self.deal_station()
+        self.deal_data()
         self._route = {}
         self._all_route = None
         self._floyd = None
 
-    def deal_station(self):
+    def get_same_name_station(self):
+        """
+        获取同名车站所有id
+        :return:
+        """
+        data = self.data.groupby(self.station_name)
+        idx = {k: v + 1 for k, v in data.indices.items()}
+        return idx
+
+    def deal_data(self):
         """
         处理同名车站不同id问题
         :return:
         """
-        data = self.data.groupby(self.station_name)
-        for station_name, station_ids in data.indices.items():
+        data = self.get_same_name_station()
+        for station_name, station_ids in data.items():
             if len(station_ids) > 1:
-                c_id = station_ids[0] + 1
+                c_id = station_ids[0]
                 for id in station_ids[1:]:
-                    self.data.at[id, self.station_id] = c_id
+                    self.data.at[id - 1, self.station_id] = c_id
 
-    def get_station_id(self, station_name):
+    def get_station_id(self, station_name, base=False):
         """
         根据车站名称获取车站id
         :param station_name:
+        :param base: 是否用未处理过的数据
         :return:
         """
-        df: pd.DataFrame = self.data[self.data[self.station_name] == station_name]
-        if df.empty:
-            return ''
-        return df[self.station_id].values[0]
+        if base:
+            df: pd.DataFrame = self.base_data[self.base_data[self.station_name] == station_name]
+            if df.empty:
+                return ''
+            return list(df[self.station_id])
+        else:
+            df: pd.DataFrame = self.data[self.data[self.station_name] == station_name]
+            if df.empty:
+                return ''
+            return df[self.station_id].values[0]
 
     def get_name(self, station_id):
         """
@@ -351,9 +384,9 @@ class Station(Data):
 
 
 od = Od()
+station = Station()
 trains = Trains()
 route_name = RouteName()
-station = Station()
 
 del Data
 del Od
