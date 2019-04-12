@@ -28,6 +28,17 @@ def get_time_func(type='s'):
 time_encode, time_decode = get_time_func()
 
 
+def get_min_map_floyd(df: pd.DataFrame):
+    l = df.shape[0]
+    for i in range(1, l + 1):
+        for j in range(1, l + 1):
+            if df[i][j]:
+                for k in range(1, l + 1):
+                    if df[i][k] and df[k][j] and df[i][j] > df[i][k] + df[k][j]:
+                        # todo 路径
+                        df[i][j] = df[i][k] + df[k][j]
+
+
 class Data:
     def get_data(self, small=True):
         if small:
@@ -56,6 +67,11 @@ class Od(Data):
 
         self.get_data()
 
+    def format_time(self, df):
+        df.loc[:, self.in_time] = df.loc[:, self.in_time].apply(time_decode)
+        df.loc[:, self.out_time] = df.loc[:, self.out_time].apply(time_decode)
+        return df
+
 
 class Trains(Data):
     def __init__(self):
@@ -77,14 +93,25 @@ class Trains(Data):
 
         self.get_data()
 
-    def get_trains(self, route_id):
+    def format_time(self, df):
+        df.loc[:, self.end_time] = df.loc[:, self.end_time].apply(time_decode)
+        df.loc[:, self.start_time] = df.loc[:, self.start_time].apply(time_decode)
+        return df
+
+    def get_route_trains(self, route_id):
         df: pd.DataFrame = self.data[self.data[self.route_id] == route_id]
         if df.empty:
             return []
         return df
 
+    def get_station_trains(self, station_id):
+        df: pd.DataFrame = self.data[self.data[self.station_id] == station_id]
+        if df.empty:
+            return []
+        return df
 
-class Route(Data):
+
+class RouteName(Data):
     def __init__(self):
         self.file_name = 'route_name.csv'
 
@@ -124,6 +151,24 @@ class Station(Data):
         self._route = {}
         self._all_route = None
 
+    def get_station_id(self, station_name):
+        df: pd.DataFrame = self.data[self.data[self.station_name] == station_name]
+        if df.empty:
+            return ''
+        return list(df[self.station_id])
+
+    def get_name(self, station_id):
+        df: pd.DataFrame = self.data[self.data[self.station_id] == station_id]
+        if df.empty:
+            return ''
+        return df[self.station_name].values[0]
+
+    def get_station_route(self, station_id):
+        df: pd.DataFrame = self.data[self.data[self.station_id] == station_id]
+        if df.empty:
+            return []
+        return df
+
     def get_route_station(self, route_id):
         df: pd.DataFrame = self.data[self.data[self.route_id] == route_id]
         if df.empty:
@@ -161,11 +206,11 @@ class Station(Data):
 
 od = Od()
 trains = Trains()
-route = Route()
+route_name = RouteName()
 station = Station()
 
 del Data
 del Od
 del Trains
-del Route
+del RouteName
 del Station
