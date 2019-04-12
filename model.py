@@ -1,5 +1,8 @@
 import pandas as pd
 
+transfer_time = 3  # 换乘时间
+buffer_time = 20  # 可接受波动时间
+
 
 def get_time_func(type='s'):
     if type == 'h':
