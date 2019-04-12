@@ -1,7 +1,7 @@
 import pandas as pd
 
 
-def get_time_func(type):
+def get_time_func(type='s'):
     if type == 'h':
         def encode(time):
             h, m, s = [int(i) for i in time.split(':')]
@@ -25,7 +25,7 @@ def get_time_func(type):
     return encode, decode
 
 
-time_encode, time_decode = get_time_func('h')
+time_encode, time_decode = get_time_func()
 
 
 class Data:
@@ -76,6 +76,15 @@ class Trains(Data):
         }
 
         self.get_data()
+
+    def get_trains(self, route_id):
+        print(self.data)
+        print(self.data[self.route_id])
+        exit()
+        df: pd.DataFrame = self.data[self.data[self.route_id] == route_id]
+        if df.empty:
+            return []
+        return df
 
 
 class Route(Data):
