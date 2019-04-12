@@ -1,7 +1,4 @@
-from model import Station, Route
-station = Station()
-route = Route()
-
+from model import station,route
 
 # print(route.get_name(12))
 # print(station.get_route_station(10))

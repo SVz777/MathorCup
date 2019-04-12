@@ -151,3 +151,15 @@ class Station(Data):
                 self._all_route[now][next] = self._all_route[next][now] = True
 
         return self._all_route
+
+
+od = Od()
+trains = Trains()
+route = Route()
+station = Station()
+
+del Data
+del Od
+del Trains
+del Route
+del Station

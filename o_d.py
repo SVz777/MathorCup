@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 
 import pandas as pd
 
-from model import Od, Trains, Route, Station, time_decode
+from model import od, trains, route, station, time_decode
 
 tmp = 'tmp_'
 
@@ -14,10 +14,6 @@ def df_sum(dfs):
     return df
 
 
-od = Od()
-trains = Trains()
-route_name = Route()
-station = Station()
 
 datas = od.data
 print(datas)
