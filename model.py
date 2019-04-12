@@ -64,15 +64,15 @@ class Trains(Data):
         self.route_id = 'route_id'
         self.train_id = 'train_id'
         self.station_id = 'station_id'
-        self.start_time = 'start_time'
         self.end_time = 'end_time'
+        self.start_time = 'start_time'
 
         self.converters = {
             self.route_id: int,
             self.train_id: int,
             self.station_id: int,
-            self.start_time: time_encode,
             self.end_time: time_encode,
+            self.start_time: time_encode,
         }
 
         self.get_data()
