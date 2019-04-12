@@ -35,11 +35,11 @@ def get_min_map_floyd(df: pd.DataFrame):
     l = df.shape[0]
     for i in range(1, l + 1):
         for j in range(1, l + 1):
-            if df[i][j]:
-                for k in range(1, l + 1):
-                    if df[i][k] and df[k][j] and df[i][j] > df[i][k] + df[k][j]:
-                        # todo 路径
-                        df[i][j] = df[i][k] + df[k][j]
+            for k in range(1, l + 1):
+                if df[i][j] > df[i][k] + df[k][j]:
+                    # todo 路径
+                    df[i][j] = df[i][k] + df[k][j]
+    return df
 
 
 class Data:
@@ -113,6 +113,29 @@ class Trains(Data):
             return []
         return df
 
+    def get_station_time(self, start_station_id, end_station_id):
+        t1, t2 = trains.get_station_trains(start_station_id), trains.get_station_trains(end_station_id)
+        t1 = t1[[trains.station_id, trains.train_id, trains.end_time, trains.start_time]]
+        t2 = t2[[trains.station_id, trains.train_id, trains.end_time, trains.start_time]]
+        t1 = t1.set_index(trains.train_id)
+        t2 = t2.set_index(trains.train_id)
+
+        m: pd.DataFrame = pd.merge(t1, t2, on=[trains.train_id], suffixes=['_s', '_e'])
+
+        dd = (m[trains.start_time + '_e'] - m[trains.start_time + '_s']).drop_duplicates()
+
+        front = list(dd[dd > 0])
+        back = list(dd[dd < 0])
+
+        ret_front, ret_back = float('inf'), float('inf')
+        if front:
+            ret_front = abs(sum(front) / len(front))
+
+        if back:
+            ret_back = abs(sum(back) / len(back))
+
+        return ret_front, ret_back
+
 
 class RouteName(Data):
     def __init__(self):
@@ -154,7 +177,7 @@ class Station(Data):
         self._route = {}
         self._all_route = None
 
-    def get_station_id(self, station_name):
+    def get_station_ids(self, station_name):
         df: pd.DataFrame = self.data[self.data[self.station_name] == station_name]
         if df.empty:
             return ''
@@ -166,34 +189,31 @@ class Station(Data):
             return ''
         return df[self.station_name].values[0]
 
-    def get_station_route(self, station_id):
+    def get_station_routes(self, station_id):
         df: pd.DataFrame = self.data[self.data[self.station_id] == station_id]
         if df.empty:
             return []
-        return df
+        return list(df[self.route_id])
 
-    def get_route_station(self, route_id):
+    def get_route_stations(self, route_id):
         df: pd.DataFrame = self.data[self.data[self.route_id] == route_id]
         if df.empty:
             return []
-        return df
+        return list(df[self.station_id])
 
     def get_route(self, route_id):
         if self._route.get(route_id):
             return self._route[route_id]
 
-        df = self.get_route_station(route_id)
-        stations = list(df['station_id'])
+        stations = self.get_route_stations(route_id)
 
-        if route_id == 2 or route_id == 4:
-            stations.append(stations[0])
         self._route[route_id] = stations
         return stations
 
-    def get_all_route(self):
+    def get_all_route(self, trains):
         if self._all_route is not None:
             return self._all_route
-        self._all_route = pd.DataFrame(data=False, index=range(1, 329), columns=range(1, 329), dtype=pd.np.bool)
+        self._all_route = pd.DataFrame(data=float('inf'), index=range(1, 329), columns=range(1, 329), dtype=pd.np.float)
 
         s: pd.Series = self.data[self.route_id]
         route_ids = list(s.drop_duplicates())
@@ -202,7 +222,10 @@ class Station(Data):
             for i in range(len(stations) - 1):
                 now = stations[i]
                 next = stations[i + 1]
-                self._all_route[now][next] = self._all_route[next][now] = True
+
+                front, back = trains.get_station_time(now, next)
+                self._all_route[now][next] = front
+                self._all_route[next][now] = back
 
         return self._all_route
 

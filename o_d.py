@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 
 import pandas as pd
 
-from model import od, trains, route, station, time_decode
+from model import od, trains, route_name, station, time_decode
 
 tmp = 'tmp_'
 
