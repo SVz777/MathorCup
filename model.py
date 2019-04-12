@@ -64,6 +64,11 @@ class Od(Data):
         self.get_data()
 
     def format_time(self, df):
+        """
+        格式化时间输出
+        :param df: 需要格式化时间输出的 od 的 dataframe
+        :return: 原地修改，并且返回
+        """
         df.loc[:, self.in_time] = df.loc[:, self.in_time].apply(time_decode)
         df.loc[:, self.out_time] = df.loc[:, self.out_time].apply(time_decode)
         return df
