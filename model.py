@@ -197,10 +197,12 @@ class Trains(Data):
         """
         ts = self.get_station_drive_trains(start_station_id, end_station_id)
         idx = list(ts.index)
-        m = self.data[self.data[trains.train_id] == idx]
-        m = m[m[trains.station_id] == start_station_id]
-        dd = (m[self.start_time] - m[self.end_time]).drop_duplicates()
-        real_time = list(dd[dd > 0])
+        m = self.data[self.data[trains.station_id] == start_station_id]
+        real_time = []
+        for i in idx:
+            t1 = m[m[trains.train_id] == i]
+            dd = (t1[self.start_time] - t1[self.end_time]).drop_duplicates()
+            real_time.extend(list(dd[dd > 0]))
 
         ret_time = float('inf')
         if real_time:
@@ -252,6 +254,8 @@ class Station(Data):
         self.station_map = {}
         self._route = {}
         self._all_route = None
+        self._wait_route = None
+        self._path_route = None
         self._floyd = None
 
         self._get_data()
@@ -378,6 +382,75 @@ class Station(Data):
             pickle.dump(self._all_route, f)
         return self._all_route
 
+    def get_wait_route(self):
+        """
+        计算所有路线的相邻站点停站耗时
+        :return:
+        """
+        if self._wait_route is not None:
+            print('cache')
+            return self._wait_route
+
+        if os.path.exists('wait_route.pds'):
+            with open('wait_route.pds', 'rb') as f:
+                print('load')
+                self._wait_route = pickle.load(f)
+                return self._wait_route
+
+        self._wait_route = pd.DataFrame(data=float('inf'), index=range(1, len(self.data) + 1), columns=range(1, len(self.data) + 1), dtype=pd.np.float)
+
+        for i in range(1, len(self.data) + 1):
+            self._wait_route[i][i] = 0
+
+        s: pd.Series = self.data[self.route_id]
+        route_ids = list(s.drop_duplicates())
+        for route_id in route_ids:
+            stations = self.get_route_stations(route_id)
+            for i in range(len(stations) - 1):
+                now = stations[i]
+                next = stations[i + 1]
+                self._wait_route[now][next] = trains.get_station_wait_time(now, next)
+                self._wait_route[next][now] = trains.get_station_wait_time(next, now)
+
+        with open('wait_route.pds', 'wb') as f:
+            pickle.dump(self._wait_route, f)
+        return self._wait_route
+
+    def get_path_route(self):
+        """
+        计算所有路线的相邻站点的路径
+        :return:
+        """
+        if self._path_route is not None:
+            print('cache')
+            return self._path_route
+
+        if os.path.exists('path_route.pds'):
+            with open('path_route.pds', 'rb') as f:
+                print('load')
+                self._path_route = pickle.load(f)
+                return self._path_route
+
+        self._path_route = pd.DataFrame(data=-1, index=range(1, len(self.data) + 1), columns=range(1, len(self.data) + 1), dtype=pd.np.int)
+
+        for i in range(1, len(self.data) + 1):
+            self._path_route[i][i] = 0
+
+        s: pd.Series = self.data[self.route_id]
+        route_ids = list(s.drop_duplicates())
+        for route_id in route_ids:
+            stations = self.get_route_stations(route_id)
+            for i in range(len(stations) - 1):
+                now = stations[i]
+                next = stations[i + 1]
+
+                self._path_route[now][next] = now
+                self._path_route[next][now] = next
+
+        with open('path_route.pds', 'wb') as f:
+            pickle.dump(self._path_route, f)
+        return self._path_route
+
     def get_floyd(self):
         """
         计算所有站点间耗时
@@ -392,7 +465,13 @@ class Station(Data):
                 return self._floyd
 
         l = self.data.shape[0]
-        self._floyd = self.get_all_route().copy()
+        self._floyd = {
+            'map': self.get_all_route().copy(),
+            'wait': self.get_wait_route().copy(),
+            'path': pd.DataFrame(data=float('inf'), index=range(1, len(self.data) + 1), columns=range(1, len(self.data) + 1), dtype=pd.np.float)
+        }
+
+
 
         processor = {
             'now': 0,
@@ -402,9 +481,11 @@ class Station(Data):
             for i in range(1, l + 1):
                 for j in range(1, l + 1):
                     processor['now'] += 1
-                    if self._floyd[i][j] > self._floyd[i][k] + self._floyd[k][j]:
+                    if self._floyd['map'][i][j] > self._floyd['map'][i][k]+self._floyd['wait'][i][k] + self._floyd['map'][k][j]+self._floyd['wait'][i][k]:
                         # todo 路径
-                        self._floyd[i][j] = self._floyd[i][k] + self._floyd[k][j]
+                        self._floyd['map'][i][j] = self._floyd['map'][i][k] + self._floyd['map'][k][j]
+                        self._floyd['wait'][i][j] = self._floyd['wait'][i][k] + self._floyd['wait'][k][j]
+                        self._floyd['path'][i][j] = self._floyd['path'][k][j]
                     print(f"{processor['now']}/{processor['all']} -- {(processor['now']/processor['all'])*10000 //1 /100}%")
 
         with open('floyd.pds', 'wb') as f:
