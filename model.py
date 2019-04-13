@@ -35,12 +35,26 @@ time_encode, time_decode = get_time_func()
 
 
 class Data:
-    def get_data(self, small=True):
+    def _get_data(self, small=True):
         if small:
             self.base_data = pd.read_csv('./info/' + self.file_name, converters=self.converters, nrows=100000)
         else:
             self.base_data = pd.read_csv('./info/' + self.file_name, converters=self.converters)  # , chunksize=100000)
         self.data = self.base_data.copy()
+
+    @staticmethod
+    def format_time(df, columns):
+        """
+        格式化时间输出
+        :param df: 需要格式化时间输出的dataframe
+        :param columns: 需要格式化的列名列表
+        :return: 原地修改，并且返回
+        """
+        for column in columns:
+            if column not in df.columns:
+                continue
+            df.loc[:, column] = df.loc[:, column].apply(time_decode)
+        return df
 
 
 class Od(Data):
@@ -61,17 +75,28 @@ class Od(Data):
             self.out_time: time_encode
         }
 
-        self.get_data()
+        self._get_data()
+        self._deal_data()
 
-    def format_time(self, df):
+    def _deal_data(self):
         """
-        格式化时间输出
-        :param df: 需要格式化时间输出的 od 的 dataframe
-        :return: 原地修改，并且返回
+        处理同名车站不同id问题
+        :return:
         """
-        df.loc[:, self.in_time] = df.loc[:, self.in_time].apply(time_decode)
-        df.loc[:, self.out_time] = df.loc[:, self.out_time].apply(time_decode)
-        return df
+        data = station.station_map
+
+        for station_id, station_real_id in data.items():
+            idx = []
+            idx.extend(list(self.data[self.data[self.src_station] == station_id].index))
+
+            for i in idx:
+                self.data.at[i, self.src_station] = station_real_id
+
+            idx = []
+            idx.extend(list(self.data[self.data[self.dest_station] == station_id].index))
+
+            for i in idx:
+                self.data.at[i, self.dest_station] = station_real_id
 
 
 class Trains(Data):
@@ -92,34 +117,21 @@ class Trains(Data):
             self.start_time: time_encode,
         }
 
-        self.get_data()
-        self.deal_data()
+        self._get_data()
+        self._deal_data()
 
-    def deal_data(self):
+    def _deal_data(self):
         """
         处理同名车站不同id问题
         :return:
         """
-        data = station.get_same_name_station()
-        for station_name, station_ids in data.items():
-            if len(station_ids) > 1:
-                c_id = station_ids[0]
-                idx = []
-                for id in station_ids[1:]:
-                    idx.extend(list(self.data[self.data[self.station_id] == id].index))
+        data = station.station_map
+        for station_id, station_real_id in data.items():
+            idx = []
+            idx.extend(list(self.data[self.data[self.station_id] == station_id].index))
 
-                for i in idx:
-                    self.data.at[i,self.station_id] = c_id
-
-    def format_time(self, df):
-        """
-        格式化时间输出
-        :param df: 需要格式化时间输出的 trains 的dataframe
-        :return: 原地修改，并且返回
-        """
-        df.loc[:, self.end_time] = df.loc[:, self.end_time].apply(time_decode)
-        df.loc[:, self.start_time] = df.loc[:, self.start_time].apply(time_decode)
-        return df
+            for i in idx:
+                self.data.at[i, self.station_id] = station_real_id
 
     def get_route_trains(self, route_id):
         """
@@ -209,7 +221,7 @@ class RouteName(Data):
             self.route_name: str,
         }
 
-        self.get_data()
+        self._get_data()
 
     def get_name(self, route_id):
         """
@@ -237,13 +249,15 @@ class Station(Data):
             self.route_id: int,
         }
 
-        self.get_data()
-        self.deal_data()
+        self.station_map = {}
         self._route = {}
         self._all_route = None
         self._floyd = None
 
-    def get_same_name_station(self):
+        self._get_data()
+        self._deal_data()
+
+    def _get_same_name_station(self):
         """
         获取同名车站所有id
         :return:
@@ -252,17 +266,26 @@ class Station(Data):
         idx = {k: v + 1 for k, v in data.indices.items()}
         return idx
 
-    def deal_data(self):
+    def _deal_data(self):
         """
         处理同名车站不同id问题
         :return:
         """
-        data = self.get_same_name_station()
+        data = self._get_same_name_station()
         for station_name, station_ids in data.items():
             if len(station_ids) > 1:
                 c_id = station_ids[0]
                 for id in station_ids[1:]:
+                    self.station_map[id] = c_id
                     self.data.at[id - 1, self.station_id] = c_id
+
+    def get_real_station_id(self, station_id):
+        """
+        获取同名车站的唯一ID
+        :param station_id:
+        :return:
+        """
+        return self.station_map[station_id]
 
     def get_station_id(self, station_name, base=False):
         """
@@ -370,12 +393,19 @@ class Station(Data):
 
         l = self.data.shape[0]
         self._floyd = self.get_all_route().copy()
+
+        processor = {
+            'now': 0,
+            'all': l ** 3
+        }
         for k in range(1, l + 1):
             for i in range(1, l + 1):
                 for j in range(1, l + 1):
+                    processor['now'] += 1
                     if self._floyd[i][j] > self._floyd[i][k] + self._floyd[k][j]:
                         # todo 路径
                         self._floyd[i][j] = self._floyd[i][k] + self._floyd[k][j]
+                    print(f"{processor['now']}/{processor['all']} -- {(processor['now']/processor['all'])*10000 //1 /100}%")
 
         with open('floyd.pds', 'wb') as f:
             pickle.dump(self._floyd, f)
@@ -383,8 +413,8 @@ class Station(Data):
         return self._floyd
 
 
-od = Od()
 station = Station()
+od = Od()
 trains = Trains()
 route_name = RouteName()
 
