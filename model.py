@@ -468,7 +468,7 @@ class Station(Data):
         self._floyd = {
             'map': self.get_all_route().copy(),
             'wait': self.get_wait_route().copy(),
-            'path': pd.DataFrame(data=float('inf'), index=range(1, len(self.data) + 1), columns=range(1, len(self.data) + 1), dtype=pd.np.float)
+            'path': self.get_path_route().copy()
         }
 
 
