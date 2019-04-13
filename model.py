@@ -484,8 +484,6 @@ class Station(Data):
         start = 1
         end = l + 1
 
-        start = 301
-        end = 307
         processor = {
             'now': start-1,
             'all': (end-1) ** 3
