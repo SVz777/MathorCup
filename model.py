@@ -482,7 +482,6 @@ class Station(Data):
                 for j in range(1, l + 1):
                     processor['now'] += 1
                     if self._floyd['map'][i][j] > self._floyd['map'][i][k]+self._floyd['wait'][i][k] + self._floyd['map'][k][j]+self._floyd['wait'][i][k]:
-                        # todo 路径
                         self._floyd['map'][i][j] = self._floyd['map'][i][k] + self._floyd['map'][k][j]
                         self._floyd['wait'][i][j] = self._floyd['wait'][i][k] + self._floyd['wait'][k][j]
                         self._floyd['path'][i][j] = self._floyd['path'][k][j]
