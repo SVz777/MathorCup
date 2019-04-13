@@ -476,11 +476,6 @@ class Station(Data):
             'path': self.get_path_route().copy()
         }
 
-        processor = {
-            'now': 0,
-            'all': l ** 3
-        }
-
         start = 1
         end = l + 1
 
@@ -493,8 +488,6 @@ class Station(Data):
             for i in range(start, end):
                 for j in range(start, end):
                     processor['now'] += 1
-                    if i == 301 and k == 302 and j == 303:
-                        print()
                     if self._floyd['map'][i][j] + self._floyd['wait'][i][j] > self._floyd['map'][i][k] + \
                             self._floyd['wait'][i][k] + self._floyd['map'][k][j] + self._floyd['wait'][k][j]:
                         self._floyd['map'][i][j] = self._floyd['map'][i][k] + self._floyd['map'][k][j]
