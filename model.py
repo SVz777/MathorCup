@@ -6,7 +6,7 @@ import pickle
 transfer_time = 3  # 换乘时间
 buffer_time = 20  # 可接受波动时间
 
-small = True
+small = False
 
 
 def get_time_func(type='s'):
@@ -503,7 +503,7 @@ class Station(Data):
         return self._floyd
 
     def get_path(self, start_station_id, end_station_id):
-        path = self.get_floyd()
+        path = self.get_floyd()['path']
         p = []
         while path[start_station_id][end_station_id] != start_station_id:
             p.append(path[start_station_id][end_station_id])
