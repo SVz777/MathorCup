@@ -35,7 +35,7 @@ time_encode, time_decode = get_time_func()
 
 
 class Data:
-    def _get_data(self, small=True):
+    def _get_data(self, small=False):
         if small:
             self.base_data = pd.read_csv('./info/' + self.file_name, converters=self.converters, nrows=100000)
         else:
@@ -481,7 +481,7 @@ class Station(Data):
             for i in range(1, l + 1):
                 for j in range(1, l + 1):
                     processor['now'] += 1
-                    if self._floyd['map'][i][j] + self._floyd['wait'][i][j] > self._floyd['map'][i][k]+self._floyd['wait'][i][k] + self._floyd['map'][k][j]+self._floyd['wait'][i][k]:
+                    if self._floyd['map'][i][j] + self._floyd['wait'][i][j] > self._floyd['map'][i][k]+self._floyd['wait'][i][k] + self._floyd['map'][k][j]+self._floyd['wait'][k][j]:
                         self._floyd['map'][i][j] = self._floyd['map'][i][k] + self._floyd['map'][k][j]
                         self._floyd['wait'][i][j] = self._floyd['wait'][i][k] + self._floyd['wait'][k][j]
                         self._floyd['path'][i][j] = self._floyd['path'][k][j]
@@ -492,6 +492,14 @@ class Station(Data):
 
         return self._floyd
 
+    def get_path(self,start_station_id, end_station_id):
+        path = self.get_floyd()
+        p = []
+        while path[start_station_id][end_station_id] != start_station_id:
+            p.append(path[start_station_id][end_station_id])
+            end_station_id = path[start_station_id][end_station_id]
+        p.append(start_station_id)
+        return p
 
 station = Station()
 od = Od()
