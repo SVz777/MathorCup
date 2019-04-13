@@ -6,6 +6,8 @@ import pickle
 transfer_time = 3  # 换乘时间
 buffer_time = 20  # 可接受波动时间
 
+small = True
+
 
 def get_time_func(type='s'):
     if type == 'h':
@@ -35,7 +37,7 @@ time_encode, time_decode = get_time_func()
 
 
 class Data:
-    def _get_data(self, small=False):
+    def _get_data(self, small=small):
         if small:
             self.base_data = pd.read_csv('./info/' + self.file_name, converters=self.converters, nrows=100000)
         else:
@@ -168,8 +170,8 @@ class Trains(Data):
 
         m: pd.DataFrame = pd.merge(t1, t2, on=[self.train_id], suffixes=['_s', '_e'])
 
-        df = (m[self.end_time + '_e'] - m[self.start_time + '_s']).drop_duplicates()
-        df = df[df > 0]
+        df = (m[self.end_time + '_e'] - m[self.start_time + '_s'])
+        df = df[df >= 0]
         return df
 
     def get_station_drive_time(self, start_station_id, end_station_id):
@@ -202,7 +204,7 @@ class Trains(Data):
         for i in idx:
             t1 = m[m[trains.train_id] == i]
             dd = (t1[self.start_time] - t1[self.end_time]).drop_duplicates()
-            real_time.extend(list(dd[dd > 0]))
+            real_time.extend(list(dd[dd >= 0]))
 
         ret_time = float('inf')
         if real_time:
@@ -363,7 +365,8 @@ class Station(Data):
                 self._all_route = pickle.load(f)
                 return self._all_route
 
-        self._all_route = pd.DataFrame(data=float('inf'), index=range(1, len(self.data) + 1), columns=range(1, len(self.data) + 1), dtype=pd.np.float)
+        self._all_route = pd.DataFrame(data=float('inf'), index=range(1, len(self.data) + 1),
+                                       columns=range(1, len(self.data) + 1), dtype=pd.np.float)
 
         for i in range(1, len(self.data) + 1):
             self._all_route[i][i] = 0
@@ -397,7 +400,8 @@ class Station(Data):
                 self._wait_route = pickle.load(f)
                 return self._wait_route
 
-        self._wait_route = pd.DataFrame(data=float('inf'), index=range(1, len(self.data) + 1), columns=range(1, len(self.data) + 1), dtype=pd.np.float)
+        self._wait_route = pd.DataFrame(data=float('inf'), index=range(1, len(self.data) + 1),
+                                        columns=range(1, len(self.data) + 1), dtype=pd.np.float)
 
         for i in range(1, len(self.data) + 1):
             self._wait_route[i][i] = 0
@@ -431,7 +435,8 @@ class Station(Data):
                 self._path_route = pickle.load(f)
                 return self._path_route
 
-        self._path_route = pd.DataFrame(data=-1, index=range(1, len(self.data) + 1), columns=range(1, len(self.data) + 1), dtype=pd.np.int)
+        self._path_route = pd.DataFrame(data=-1, index=range(1, len(self.data) + 1),
+                                        columns=range(1, len(self.data) + 1), dtype=pd.np.int)
 
         for i in range(1, len(self.data) + 1):
             self._path_route[i][i] = 0
@@ -471,28 +476,42 @@ class Station(Data):
             'path': self.get_path_route().copy()
         }
 
-
-
         processor = {
             'now': 0,
             'all': l ** 3
         }
-        for k in range(1, l + 1):
-            for i in range(1, l + 1):
-                for j in range(1, l + 1):
+
+        start = 1
+        end = l + 1
+
+        start = 301
+        end = 307
+        processor = {
+            'now': start-1,
+            'all': (end-1) ** 3
+        }
+
+        for k in range(start, end):
+            for i in range(start, end):
+                for j in range(start, end):
                     processor['now'] += 1
-                    if self._floyd['map'][i][j] + self._floyd['wait'][i][j] > self._floyd['map'][i][k]+self._floyd['wait'][i][k] + self._floyd['map'][k][j]+self._floyd['wait'][k][j]:
+                    if i == 301 and k == 302 and j == 303:
+                        print()
+                    if self._floyd['map'][i][j] + self._floyd['wait'][i][j] > self._floyd['map'][i][k] + \
+                            self._floyd['wait'][i][k] + self._floyd['map'][k][j] + self._floyd['wait'][k][j]:
                         self._floyd['map'][i][j] = self._floyd['map'][i][k] + self._floyd['map'][k][j]
                         self._floyd['wait'][i][j] = self._floyd['wait'][i][k] + self._floyd['wait'][k][j]
                         self._floyd['path'][i][j] = self._floyd['path'][k][j]
-                    print(f"{processor['now']}/{processor['all']} -- {(processor['now']/processor['all'])*10000 //1 /100}%")
+                    print(
+                        f"{processor['now']}/{processor['all']} -- {(processor['now']/processor['all'])*10000 //1 /100}%")
+
 
         with open('floyd.pds', 'wb') as f:
             pickle.dump(self._floyd, f)
 
         return self._floyd
 
-    def get_path(self,start_station_id, end_station_id):
+    def get_path(self, start_station_id, end_station_id):
         path = self.get_floyd()
         p = []
         while path[start_station_id][end_station_id] != start_station_id:
@@ -500,6 +519,7 @@ class Station(Data):
             end_station_id = path[start_station_id][end_station_id]
         p.append(start_station_id)
         return p
+
 
 station = Station()
 od = Od()
